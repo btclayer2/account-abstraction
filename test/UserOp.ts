@@ -6,12 +6,13 @@ import {
 } from 'ethers/lib/utils'
 import { BigNumber, Contract, Signer, Wallet } from 'ethers'
 import { AddressZero, callDataCost, rethrow } from './testutils'
-import { ecsign, toRpcSig, keccak256 as keccak256_buffer } from 'ethereumjs-util'
+import { ecsign, toRpcSig } from 'ethereumjs-util'
 import {
   EntryPoint
 } from '../typechain'
 import { UserOperation } from './UserOperation'
 import { Create2Factory } from '../src/Create2Factory'
+import { magicHash as BtcMessageHash } from 'bitcoinjs-message'
 
 export function packUserOp (op: UserOperation, forSignature = true): string {
   if (forSignature) {
@@ -84,12 +85,10 @@ export const DefaultsForUserOp: UserOperation = {
 
 export function signUserOp (op: UserOperation, signer: Wallet, entryPoint: string, chainId: number): UserOperation {
   const message = getUserOpHash(op, entryPoint, chainId)
-  const msg1 = Buffer.concat([
-    Buffer.from('\x19Ethereum Signed Message:\n32', 'ascii'),
-    Buffer.from(arrayify(message))
-  ])
 
-  const sig = ecsign(keccak256_buffer(msg1), Buffer.from(arrayify(signer.privateKey)))
+  const btcMessageHash = BtcMessageHash(message)
+
+  const sig = ecsign(btcMessageHash, Buffer.from(arrayify(signer.privateKey)))
   // that's equivalent of:  await signer.signMessage(message);
   // (but without "async"
   const signedMessage1 = toRpcSig(sig.v, sig.r, sig.s)
@@ -191,15 +190,36 @@ export async function fillUserOp (op: Partial<UserOperation>, entryPoint?: Entry
   return op2
 }
 
+async function getSignatureFromWallet (messageHash: Buffer, wallet: Wallet): Promise<string> {
+  console.log('zjb: getSignatureFromWallet')
+  const sig = ecsign(messageHash, Buffer.from(arrayify(wallet.privateKey)))
+  return toRpcSig(sig.v, sig.r, sig.s)
+}
+
+async function getSignatureFromSigner (messageHash: Buffer, signer: Signer): Promise<string> {
+  console.log('zjb: getSignatureFromSigner')
+  try {
+    return await signer.signMessage(messageHash)
+  } catch (err) {
+    // attempt to use 'eth_sign' instead of 'personal_sign' which is not supported by Foundry Anvil
+    return await (signer as any)._legacySignMessage(messageHash)
+  }
+}
+
 export async function fillAndSign (op: Partial<UserOperation>, signer: Wallet | Signer, entryPoint?: EntryPoint, getNonceFunction = 'getNonce'): Promise<UserOperation> {
   const provider = entryPoint?.provider
   const op2 = await fillUserOp(op, entryPoint, getNonceFunction)
 
   const chainId = await provider!.getNetwork().then(net => net.chainId)
-  const message = arrayify(getUserOpHash(op2, entryPoint!.address, chainId))
+  const ethMessageHash = getUserOpHash(op2, entryPoint!.address, chainId)
+  const btcMessageHash = BtcMessageHash(ethMessageHash)
+
+  const signature = signer instanceof Wallet
+    ? await getSignatureFromWallet(btcMessageHash, signer)
+    : await getSignatureFromSigner(btcMessageHash, signer)
 
   return {
     ...op2,
-    signature: await signer.signMessage(message)
+    signature
   }
 }

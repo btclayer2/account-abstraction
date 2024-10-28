@@ -645,7 +645,7 @@ describe('EntryPoint', function () {
         // (gasLimit, to prevent estimateGas to fail on missing maxFeePerGas, see above..)
         const rcpt = await entryPoint.handleOps([op], beneficiaryAddress, {
           maxFeePerGas: 1e9,
-          gasLimit: 13e5
+          gasLimit: 23e5
         }).then(async t => await t.wait())
 
         console.log('rcpt.gasUsed=', rcpt.gasUsed.toString(), rcpt.transactionHash)
@@ -665,8 +665,8 @@ describe('EntryPoint', function () {
         const op = await fillAndSign({
           sender: account.address,
           callData: accountExec.data,
-          verificationGasLimit: 1e5,
-          callGasLimit: 11e5
+          verificationGasLimit: 8e5,
+          callGasLimit: 88e5
         }, accountOwner, entryPoint)
         const inititalAccountBalance = await getBalance(account.address)
         const beneficiaryAddress = createAddress()
@@ -928,7 +928,7 @@ describe('EntryPoint', function () {
           callData: accountExecCounterFromEntryPoint.data,
           sender: account2.address,
           callGasLimit: 2e6,
-          verificationGasLimit: 76000
+          verificationGasLimit: 100000
         }, accountOwner2, entryPoint)
 
         await entryPoint.callStatic.simulateValidation(op2, { gasPrice: 1e9 }).catch(simulationResultCatch)

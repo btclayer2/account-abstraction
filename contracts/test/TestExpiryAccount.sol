@@ -2,6 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "../samples/SimpleAccount.sol";
+import "../interfaces/BtcMessageHashLib.sol";
 
 /**
  * A test account, for testing expiry.
@@ -37,8 +38,12 @@ contract TestExpiryAccount is SimpleAccount {
     /// implement template method of BaseAccount
     function _validateSignature(UserOperation calldata userOp, bytes32 userOpHash)
     internal override view returns (uint256 validationData) {
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-        address signer = hash.recover(userOp.signature);
+        string memory ethMessageHashHexString = BtcMessageHashLib.toHexString(userOpHash);
+        string memory prefixedEthMessageHashHexString = string(abi.encodePacked("0x", ethMessageHashHexString));
+        bytes32 btcMessageHash = BtcMessageHashLib.toBtcSignedMessageHash(prefixedEthMessageHashHexString);
+
+        address signer =  ECDSA.recover(btcMessageHash, userOp.signature);
+
         uint48 _until = ownerUntil[signer];
         uint48 _after = ownerAfter[signer];
 

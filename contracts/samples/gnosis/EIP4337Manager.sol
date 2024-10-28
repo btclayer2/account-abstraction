@@ -13,6 +13,7 @@ import "./EIP4337Fallback.sol";
 import "../../interfaces/IAccount.sol";
 import "../../interfaces/IEntryPoint.sol";
 import "../../utils/Exec.sol";
+import "../../interfaces/BtcMessageHashLib.sol";
 
     using ECDSA for bytes32;
 
@@ -48,8 +49,13 @@ contract EIP4337Manager is IAccount, GnosisSafeStorage, Executor {
         require(msgSender == entryPoint, "account: not from entrypoint");
 
         GnosisSafe pThis = GnosisSafe(payable(address(this)));
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-        address recovered = hash.recover(userOp.signature);
+
+        string memory ethMessageHashHexString = BtcMessageHashLib.toHexString(userOpHash);
+        string memory prefixedEthMessageHashHexString = string(abi.encodePacked("0x", ethMessageHashHexString));
+        bytes32 btcMessageHash = BtcMessageHashLib.toBtcSignedMessageHash(prefixedEthMessageHashHexString);
+
+        address recovered = btcMessageHash.recover(userOp.signature);
+
         require(threshold == 1, "account: only threshold 1");
         if (!pThis.isOwner(recovered)) {
             validationData = SIG_VALIDATION_FAILED;

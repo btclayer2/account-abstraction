@@ -183,7 +183,7 @@ describe('Gnosis Proxy', function () {
     const op = await fillAndSign({
       sender: counterfactualAddress,
       initCode,
-      verificationGasLimit: 400000
+      verificationGasLimit: 800000
     }, owner, entryPoint, 'getNonce')
 
     const rcpt = await entryPoint.handleOps([op], beneficiary).then(async r => r.wait())
