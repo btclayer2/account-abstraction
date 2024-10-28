@@ -6,20 +6,20 @@ import '@nomiclabs/hardhat-etherscan'
 
 import 'solidity-coverage'
 
-import * as fs from 'fs'
+// const mnemonicFileName = process.env.MNEMONIC_FILE ?? `${process.env.HOME}/.secret/testnet-mnemonic.txt`
+// let mnemonic = 'test '.repeat(11) + 'junk'
+// if (fs.existsSync(mnemonicFileName)) { mnemonic = fs.readFileSync(mnemonicFileName, 'ascii') }
 
-const mnemonicFileName = process.env.MNEMONIC_FILE ?? `${process.env.HOME}/.secret/testnet-mnemonic.txt`
-let mnemonic = 'test '.repeat(11) + 'junk'
-if (fs.existsSync(mnemonicFileName)) { mnemonic = fs.readFileSync(mnemonicFileName, 'ascii') }
+const privkey = process.env.PRIVATE_KEY ?? ''
 
-function getNetwork1 (url: string): { url: string, accounts: { mnemonic: string } } {
+function getNetwork1 (url: string): { url: string, accounts: [string] } {
   return {
     url,
-    accounts: { mnemonic }
+    accounts: [privkey]
   }
 }
 
-function getNetwork (name: string): { url: string, accounts: { mnemonic: string } } {
+function getNetwork (name: string): { url: string, accounts: [string] } {
   return getNetwork1(`https://${name}.infura.io/v3/${process.env.INFURA_ID}`)
   // return getNetwork1(`wss://${name}.infura.io/ws/v3/${process.env.INFURA_ID}`)
 }
@@ -54,7 +54,8 @@ const config: HardhatUserConfig = {
     localgeth: { url: 'http://localgeth:8545' },
     goerli: getNetwork('goerli'),
     sepolia: getNetwork('sepolia'),
-    proxy: getNetwork1('http://localhost:8545')
+    proxy: getNetwork1('http://localhost:8545'),
+    bevmTestnet: getNetwork1('https://testnet.bevm.io')
   },
   mocha: {
     timeout: 10000
