@@ -8,9 +8,11 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 import "../core/BaseAccount.sol";
 import "./callback/TokenCallbackHandler.sol";
+import "../interfaces/BtcMessageHashLib.sol";
 
 /**
   * minimal account.
@@ -18,7 +20,7 @@ import "./callback/TokenCallbackHandler.sol";
   *  has execute, eth handling methods
   *  has a single signer that can send requests through the entryPoint.
   */
-contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable {
+contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, Initializable, IERC1271 {
     using ECDSA for bytes32;
 
     address public owner;
@@ -92,8 +94,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     /// implement template method of BaseAccount
     function _validateSignature(UserOperation calldata userOp, bytes32 userOpHash)
     internal override virtual returns (uint256 validationData) {
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-        if (owner != hash.recover(userOp.signature))
+        if (owner != _recover(userOpHash, userOp.signature))
             return SIG_VALIDATION_FAILED;
         return 0;
     }
@@ -133,6 +134,31 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
     function _authorizeUpgrade(address newImplementation) internal view override {
         (newImplementation);
         _onlyOwner();
+    }
+
+    function _recover(
+        bytes32 ethMessageHash,
+        bytes memory signature
+    ) internal pure returns(address)  {
+        string memory ethMessageHashHexString = BtcMessageHashLib.toHexString(ethMessageHash);
+        string memory prefixedEthMessageHashHexString = string(abi.encodePacked("0x", ethMessageHashHexString));
+
+        bytes32 btcMessageHash = BtcMessageHashLib.toBtcSignedMessageHash(prefixedEthMessageHashHexString);
+
+        return ECDSA.recover(btcMessageHash, signature);
+    }
+
+    // Impl IERC1271
+    function isValidSignature(
+        bytes32 ethMessageHash,
+        bytes memory signature
+    ) external view override returns (bytes4 magicValue) {
+        require(owner == _recover(ethMessageHash, signature), "InvalidBtcSignature");
+
+        /// @notice The function selector of EIP1271.isValidSignature
+        /// to be returned on successful signature verification.
+        /// bytes4(0x1626ba7e)
+        return this.isValidSignature.selector;
     }
 }
 
