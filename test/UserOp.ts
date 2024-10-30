@@ -191,13 +191,11 @@ export async function fillUserOp (op: Partial<UserOperation>, entryPoint?: Entry
 }
 
 async function getSignatureFromWallet (messageHash: Buffer, wallet: Wallet): Promise<string> {
-  console.log('zjb: getSignatureFromWallet')
   const sig = ecsign(messageHash, Buffer.from(arrayify(wallet.privateKey)))
   return toRpcSig(sig.v, sig.r, sig.s)
 }
 
 async function getSignatureFromSigner (messageHash: Buffer, signer: Signer): Promise<string> {
-  console.log('zjb: getSignatureFromSigner')
   try {
     return await signer.signMessage(messageHash)
   } catch (err) {
@@ -216,7 +214,7 @@ export async function fillAndSign (op: Partial<UserOperation>, signer: Wallet | 
 
   const signature = signer instanceof Wallet
     ? await getSignatureFromWallet(btcMessageHash, signer)
-    : await getSignatureFromSigner(btcMessageHash, signer)
+    : await getSignatureFromSigner(Buffer.from(ethMessageHash.slice(2), 'hex'), signer)
 
   return {
     ...op2,

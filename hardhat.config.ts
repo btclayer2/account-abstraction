@@ -10,7 +10,11 @@ import 'solidity-coverage'
 // let mnemonic = 'test '.repeat(11) + 'junk'
 // if (fs.existsSync(mnemonicFileName)) { mnemonic = fs.readFileSync(mnemonicFileName, 'ascii') }
 
-const privkey = process.env.PRIVATE_KEY ?? ''
+const privkey = process.env.PRIVATE_KEY
+if (privkey === '') {
+  console.error('PRIVATE_KEY is required')
+  process.exit(1)
+}
 
 function getNetwork1 (url: string): { url: string, accounts: [string] } {
   return {
