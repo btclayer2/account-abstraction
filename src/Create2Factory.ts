@@ -94,17 +94,36 @@ export class Create2Factory {
   }
 
   // deploy the factory, if not already deployed.
-  async deployFactory (signer?: Signer): Promise<void> {
+  async deployFactory(signer?: Signer): Promise<void> {
     if (await this._isFactoryDeployed()) {
-      return
+      console.log('Factory already deployed');
+      return;
     }
-    await (signer ?? this.signer).sendTransaction({
-      to: Create2Factory.factoryDeployer,
-      value: BigNumber.from(Create2Factory.factoryDeploymentFee)
-    })
-    await this.provider.sendTransaction(Create2Factory.factoryTx)
-    if (!await this._isFactoryDeployed()) {
-      throw new Error('fatal: failed to deploy deterministic deployer')
+
+    try {
+      console.log('Starting factory deployment...');
+
+      const tx1 = await (signer ?? this.signer).sendTransaction({
+        to: Create2Factory.factoryDeployer,
+        value: BigNumber.from(Create2Factory.factoryDeploymentFee)
+      });
+      console.log('Deployment fee transaction sent, waiting for confirmation...');
+      await tx1.wait();
+      console.log('Deployment fee transaction confirmed');
+
+      const tx2 = await this.provider.sendTransaction(Create2Factory.factoryTx);
+      console.log('Factory deployment transaction sent, waiting for confirmation...');
+      await tx2.wait();
+      console.log('Factory deployment transaction confirmed');
+
+      if (!await this._isFactoryDeployed()) {
+        throw new Error('fatal: failed to deploy deterministic deployer');
+      }
+      console.log('Factory deployment verified successfully');
+
+    } catch (error) {
+      console.error('Factory deployment failed:', error);
+      throw error;
     }
   }
 

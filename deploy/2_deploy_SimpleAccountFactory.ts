@@ -11,6 +11,7 @@ const deploySimpleAccountFactory: DeployFunction = async function (hre: HardhatR
     return
   }
 
+  console.log('before nonce =', await provider.getTransactionCount(from))
   // const entrypoint = await hre.deployments.get('EntryPoint')
   const ret = await hre.deployments.deploy(
     'SimpleAccountFactory', {
@@ -21,6 +22,7 @@ const deploySimpleAccountFactory: DeployFunction = async function (hre: HardhatR
       deterministicDeployment: true
     })
   console.log('==SimpleAccountFactory addr=', ret.address)
+  console.log('after nonce =', await provider.getTransactionCount(from))
 }
 
 deploySimpleAccountFactory.tags = ['SimpleAccountFactory']
