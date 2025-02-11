@@ -62,7 +62,9 @@ const config: HardhatUserConfig = {
     goerli: getNetwork('goerli'),
     sepolia: getNetwork('sepolia'),
     proxy: getNetwork1('http://localhost:8545'),
-    bevmTestnet: getNetwork1('https://testnet.bevm.io')
+    bevmTestnet: getNetwork1('https://testnet.bevm.io'),
+    bevmSignet: getNetwork1('https://signet.bevm.io'),
+    bevmMainnet: getNetwork1('https://rpc-mainnet-1.bevm.io')
   },
   mocha: {
     timeout: 10000
